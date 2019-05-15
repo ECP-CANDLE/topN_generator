@@ -15,7 +15,7 @@ cell_rnaseq_path = Path('./data/combined_rnaseq_data_lincs1000_combat')
 def parse_arguments(model_name=''):
     parser = argparse.ArgumentParser()
     parser.add_argument('--top_n', type=int, default=6,
-                        help='Number of cancer types to be included')
+                        help='Number of cancer types to be included. Default 6')
     parser.add_argument('--drug_descriptor', type=str, default='dragon7',
                         choices=['dragon7'],
                         help='Drug descriptors')
@@ -24,7 +24,7 @@ def parse_arguments(model_name=''):
                         help='Cell line features')
     parser.add_argument('--format', default='hdf5',
                         choices=['csv', 'tsv', 'parquet', 'hdf5', 'feather'],
-                        help='Dataframe file format')
+                        help='Dataframe file format. Default hdf5')
 
     args, unparsed = parser.parse_known_args()
     return args, unparsed
