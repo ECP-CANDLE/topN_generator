@@ -1,3 +1,5 @@
-wget --no-check-certificate -P data -nc ftp://ftp.mcs.anl.gov/pub/candle/public/benchmarks/Pilot1/combo/combined_rnaseq_data_lincs1000_combat
-wget --no-check-certificate -P data -nc ftp://ftp.mcs.anl.gov/pub/candle/public/benchmarks/Pilot1/combo/combined_single_response_agg 
-# wget --no-check-certificate ftp://ftp.mcs.anl.gov/pub/candle/public/benchmarks/Pilot1/combo/
+scp biologin-4.mcs.anl.gov:/vol/nciftp/private/data_frames/rna-seq/combined_rnaseq_data_lincs1000_combat data/
+scp biologin-4.mcs.anl.gov:/vol/nciftp/private/data_frames/dose_response/combined_single_response_agg data/
+scp biologin-4.mcs.anl.gov:/vol/nciftp/private/data_frames/cell_lines/combined_cancer_types data/
+scp biologin-4.mcs.anl.gov:/vol/nciftp/private/data_frames/drug_descriptors/combined_dragon7_descriptors data/
+scp biologin-4.mcs.anl.gov:/vol/nciftp/private/data_frames/drugs/drugs_1800 data/
