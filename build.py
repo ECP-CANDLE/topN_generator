@@ -25,6 +25,9 @@ def parse_arguments(model_name=''):
     parser.add_argument('--format', default='hdf5',
                         choices=['csv', 'tsv', 'parquet', 'hdf5', 'feather'],
                         help='Dataframe file format. Default hdf5')
+    parser.add_argument('--response_type', default='reg',
+                        choices=['reg', 'bin'],
+                        help='Response type. Regression(reg) or Binary Classification(bin). Default reg')
 
     args, unparsed = parser.parse_known_args()
     return args, unparsed
@@ -33,6 +36,10 @@ def parse_arguments(model_name=''):
 def get_drug_descriptor_path(args):
     filename = 'combined_{}_descriptors'.format(args.drug_descriptor)
     return Path(base_data_dir, filename)
+
+
+def build_filename(args):
+    return "top_{}.res_{}.cf_{}.dd_{}.{}".format(args.top_n, args.response_type, args.cell_feature, args.drug_descriptor, args.format)
 
 
 def build_dataframe(args):
@@ -68,6 +75,10 @@ def build_dataframe(args):
 
     df_response = df_response[df_response.CELL.isin(cl_filter) & df_response.DRUG.isin(dr_filter)][['CELL', 'DRUG', 'AUC']].drop_duplicates().reset_index(drop=True)
 
+    if args.response_type == 'bin':
+        df_response['AUC'] = df_response['AUC'].apply(lambda x: 0 if x < 0.5 else 1)
+        df_response.rename(columns={'AUC': 'Response'}, inplace=True)
+
     # Join response data with Drug descriptor & RNASeq
     df_rnaseq = pd.read_csv(cell_rnaseq_path, sep='\t', low_memory=False)
     df_rnaseq = df_rnaseq[df_rnaseq['Sample'].isin(cl_filter)].reset_index(drop=True)
@@ -85,7 +96,7 @@ def build_dataframe(args):
     df_final.drop(columns=['CELL', 'DRUG'], inplace=True)
     print("Dataframe is built with total {} rows.".format(len(df_final)))
 
-    save_filename = 'top_{}.{}'.format(args.top_n, args.format)
+    save_filename = build_filename(args)
     print("Saving to {}".format(save_filename))
 
     if args.format == 'feather':
