@@ -3,13 +3,13 @@
 import pandas as pd
 import argparse
 from pathlib import Path
+from functools import reduce
 
 # input files
 base_data_dir = './data'
 response_path = Path('./data/combined_single_response_agg')
 cell_cancer_types_map_path = Path('./data/combined_cancer_types')
 drug_list_path = Path('./data/drugs_1800')
-cell_rnaseq_path = Path('./data/combined_rnaseq_data_lincs1000_combat')
 
 
 def parse_arguments(model_name=''):
@@ -20,8 +20,11 @@ def parse_arguments(model_name=''):
                         choices=['dragon7', 'mordred'],
                         help='Drug descriptors')
     parser.add_argument('--cell_feature', default='rnaseq',
-                        choices=['rnaseq'],
+                        choices=['rnaseq', 'snps'],
                         help='Cell line features')
+    parser.add_argument('--cell_feature_subset', default='lincs1000',
+                        choices=['lincs1000', 'oncogenes', 'all'],
+                        help='Subset of cell line features. Default lincs1000')
     parser.add_argument('--format', default='hdf5',
                         choices=['csv', 'tsv', 'parquet', 'hdf5', 'feather'],
                         help='Dataframe file format. Default hdf5')
@@ -31,6 +34,27 @@ def parse_arguments(model_name=''):
 
     args, unparsed = parser.parse_known_args()
     return args, unparsed
+
+
+def check_file(filepath):
+    print("checking {}".format(filepath))
+    status = filepath.is_file()
+    if status is False:
+        print("File {} is not found in data dir.".format(filepath))
+    return status
+
+
+def check_data_files(args):
+    filelist = [response_path, cell_cancer_types_map_path, drug_list_path, get_cell_feature_path(args), get_drug_descriptor_path(args)]
+    return reduce((lambda x, y: x & y), map(check_file, filelist))
+
+
+def get_cell_feature_path(args):
+    if args.cell_feature_subset == 'all':
+        filename = 'combined_{}_data_combat'.format(args.cell_feature)
+    else:
+        filename = 'combined_{}_data_{}_combat'.format(args.cell_feature, args.cell_feature_subset)
+    return Path(base_data_dir, filename)
 
 
 def get_drug_descriptor_path(args):
@@ -80,7 +104,7 @@ def build_dataframe(args):
         df_response.rename(columns={'AUC': 'Response'}, inplace=True)
 
     # Join response data with Drug descriptor & RNASeq
-    df_rnaseq = pd.read_csv(cell_rnaseq_path, sep='\t', low_memory=False)
+    df_rnaseq = pd.read_csv(get_cell_feature_path(args), sep='\t', low_memory=False)
     df_rnaseq = df_rnaseq[df_rnaseq['Sample'].isin(cl_filter)].reset_index(drop=True)
 
     df_rnaseq.rename(columns={'Sample': 'CELL'}, inplace=True)
@@ -113,4 +137,5 @@ def build_dataframe(args):
 
 if __name__ == '__main__':
     FLAGS, unparsed = parse_arguments()
-    build_dataframe(FLAGS)
+    if check_data_files(FLAGS):
+        build_dataframe(FLAGS)
