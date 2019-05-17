@@ -108,6 +108,7 @@ def build_dataframe(args):
     df_rnaseq = df_rnaseq[df_rnaseq['Sample'].isin(cl_filter)].reset_index(drop=True)
 
     df_rnaseq.rename(columns={'Sample': 'CELL'}, inplace=True)
+    df_rnaseq.columns = ['GE_' + x if i > 0 else x for i, x in enumerate(df_rnaseq.columns.to_list())]
     df_rnaseq = df_rnaseq.set_index(['CELL'])
 
     df_descriptor = pd.read_csv(get_drug_descriptor_path(args), sep='\t', low_memory=False, na_values='na')
@@ -118,6 +119,7 @@ def build_dataframe(args):
 
     df_final = df.merge(df_descriptor, on='DRUG', how='left', sort='true')
     df_final.drop(columns=['CELL', 'DRUG'], inplace=True)
+    df_final.drop_duplicates(inplace=True)
     print("Dataframe is built with total {} rows.".format(len(df_final)))
 
     save_filename = build_filename(args)
@@ -126,9 +128,9 @@ def build_dataframe(args):
     if args.format == 'feather':
         df_final.to_feather(save_filename)
     elif args.format == 'csv':
-        df_final.to_csv(save_filename, index=False)
+        df_final.to_csv(save_filename, float_format='%g', index=False)
     elif args.format == 'tsv':
-        df_final.to_csv(save_filename, sep='\t', index=False)
+        df_final.to_csv(save_filename, sep='\t', float_format='%g', index=False)
     elif args.format == 'parquet':
         df_final.to_parquet(save_filename, index=False)
     elif args.format == 'hdf5':
