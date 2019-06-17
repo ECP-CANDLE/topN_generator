@@ -31,6 +31,8 @@ def parse_arguments(model_name=''):
     parser.add_argument('--response_type', default='reg',
                         choices=['reg', 'bin'],
                         help='Response type. Regression(reg) or Binary Classification(bin). Default reg')
+    parser.add_argument('--labels', type=bool, default=False,
+                        help='Contains Cell and Drug label. Default False')
 
     args, unparsed = parser.parse_known_args()
     return args, unparsed
@@ -118,8 +120,17 @@ def build_dataframe(args):
     df.set_index(['DRUG'])
 
     df_final = df.merge(df_descriptor, on='DRUG', how='left', sort='true')
-    df_final.drop(columns=['CELL', 'DRUG'], inplace=True)
-    df_final.drop_duplicates(inplace=True)
+    if args.labels:
+        df_cell_map = df_final['CELL'].to_dict()
+        df_drug_map = df_final['DRUG'].to_dict()
+        df_final.drop(columns=['CELL', 'DRUG'], inplace=True)
+        df_final.drop_duplicates(inplace=True)
+        df_final.insert(0, 'DRUG', df_final.index.map(df_cell_map))
+        df_final.insert(0, 'CELL', df_final.index.map(df_drug_map))
+        df_final.reset_index(drop=True, inplace=True)
+    else:
+        df_final.drop(columns=['CELL', 'DRUG'], inplace=True)
+        df_final.drop_duplicates(inplace=True)
     print("Dataframe is built with total {} rows.".format(len(df_final)))
 
     save_filename = build_filename(args)
