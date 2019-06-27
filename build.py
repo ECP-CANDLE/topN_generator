@@ -31,7 +31,7 @@ def parse_arguments(model_name=''):
     parser.add_argument('--response_type', default='reg',
                         choices=['reg', 'bin'],
                         help='Response type. Regression(reg) or Binary Classification(bin). Default reg')
-    parser.add_argument('--labels', type=bool, default=False,
+    parser.add_argument('--labels', action='store_true',
                         help='Contains Cell and Drug label. Default False')
     parser.add_argument('--target', type=str, default='AUC',
                         choices=['AUC', 'IC50', 'EC50', 'EC50se', 'R2fit', 'Einf', 'HS', 'AAC1', 'AUC1', 'DSS1'],
