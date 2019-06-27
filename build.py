@@ -33,6 +33,9 @@ def parse_arguments(model_name=''):
                         help='Response type. Regression(reg) or Binary Classification(bin). Default reg')
     parser.add_argument('--labels', type=bool, default=False,
                         help='Contains Cell and Drug label. Default False')
+    parser.add_argument('--target', type=str, default='AUC',
+                        choices=['AUC', 'IC50', 'EC50', 'EC50se', 'R2fit', 'Einf', 'HS', 'AAC1', 'AUC1', 'DSS1'],
+                        help='Response label value. Default AUC')
 
     args, unparsed = parser.parse_known_args()
     return args, unparsed
@@ -98,12 +101,13 @@ def build_dataframe(args):
     # Filter response by cell lines (4882) and drugs (1779)
     cl_filter = df_cl.CELL.to_list()
     dr_filter = df_drugs.DRUG.to_list()
+    target = args.target
 
-    df_response = df_response[df_response.CELL.isin(cl_filter) & df_response.DRUG.isin(dr_filter)][['CELL', 'DRUG', 'AUC']].drop_duplicates().reset_index(drop=True)
+    df_response = df_response[df_response.CELL.isin(cl_filter) & df_response.DRUG.isin(dr_filter)][['CELL', 'DRUG', target]].drop_duplicates().reset_index(drop=True)
 
     if args.response_type == 'bin':
-        df_response['AUC'] = df_response['AUC'].apply(lambda x: 0 if x < 0.5 else 1)
-        df_response.rename(columns={'AUC': 'Response'}, inplace=True)
+        df_response[target] = df_response[target].apply(lambda x: 0 if x < 0.5 else 1)
+        df_response.rename(columns={target: 'Response'}, inplace=True)
 
     # Join response data with Drug descriptor & RNASeq
     df_rnaseq = pd.read_csv(get_cell_feature_path(args), sep='\t', low_memory=False)
