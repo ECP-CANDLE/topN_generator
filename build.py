@@ -129,8 +129,8 @@ def build_dataframe(args):
         df_drug_map = df_final['DRUG'].to_dict()
         df_final.drop(columns=['CELL', 'DRUG'], inplace=True)
         df_final.drop_duplicates(inplace=True)
-        df_final.insert(0, 'DRUG', df_final.index.map(df_cell_map))
-        df_final.insert(0, 'CELL', df_final.index.map(df_drug_map))
+        df_final.insert(0, 'DRUG', df_final.index.map(df_drug_map))
+        df_final.insert(0, 'CELL', df_final.index.map(df_cell_map))
         df_final.reset_index(drop=True, inplace=True)
     else:
         df_final.drop(columns=['CELL', 'DRUG'], inplace=True)
