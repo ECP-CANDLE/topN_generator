@@ -6,7 +6,8 @@ usage: build.py [-h] [--top_n TOP_N] [--drug_descriptor {dragon7,mordred}]
                 [--cell_feature {rnaseq,snps}]
                 [--cell_feature_subset {lincs1000,oncogenes,all}]
                 [--format {csv,tsv,parquet,hdf5,feather}]
-                [--response_type {reg,bin}] [--labels LABELS]
+                [--response_type {reg,bin}] [--labels]
+                [--target {AUC,IC50,EC50,EC50se,R2fit,Einf,HS,AAC1,AUC1,DSS1}]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -22,5 +23,7 @@ optional arguments:
   --response_type {reg,bin}
                         Response type. Regression(reg) or Binary
                         Classification(bin). Default reg
-  --labels LABELS       Contains Cell and Drug label. Default False
+  --labels              Contains Cell and Drug label. Default False
+  --target {AUC,IC50,EC50,EC50se,R2fit,Einf,HS,AAC1,AUC1,DSS1}
+                        Response label value. Default AUC
 ```
