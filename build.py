@@ -67,8 +67,13 @@ def get_drug_descriptor_path(args):
     return Path(base_data_dir, filename)
 
 
+def build_file_basename(args):
+    return "top_{}.res_{}.cf_{}.dd_{}{}".format(args.top_n, args.response_type, args.cell_feature, args.drug_descriptor,
+                                                '.labled' if args.labels else '')
+
+
 def build_filename(args):
-    return "top_{}.res_{}.cf_{}.dd_{}.{}".format(args.top_n, args.response_type, args.cell_feature, args.drug_descriptor, args.format)
+    return "{}.{}".format(build_file_basename(args), args.format)
 
 
 def build_dataframe(args):
@@ -149,6 +154,8 @@ def build_dataframe(args):
     elif args.format == 'parquet':
         df_final.to_parquet(save_filename, index=False)
     elif args.format == 'hdf5':
+        df_cl.to_csv(build_file_basename(args) + '_cellline.txt', header=False, index=False)
+        df_drugs.to_csv(build_file_basename(args) + '_drug.txt', header=False, index=False)
         df_final.to_hdf(save_filename, key='df', mode='w', complib='blosc:snappy', complevel=9)
 
 
