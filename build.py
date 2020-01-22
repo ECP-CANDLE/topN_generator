@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
 import pandas as pd
+import numpy as np
 import argparse
 from pathlib import Path
 from functools import reduce
+from sklearn.preprocessing import StandardScaler
 
 # input files
 base_data_dir = './data'
@@ -77,6 +79,7 @@ def build_filename(args):
 
 
 def build_dataframe(args):
+    scaler = StandardScaler()
 
     # Identify Top N cancer types
     df_response = pd.read_csv(response_path, sep='\t', engine='c', low_memory=False)
@@ -109,6 +112,7 @@ def build_dataframe(args):
     target = args.target
 
     df_response = df_response[df_response.CELL.isin(cl_filter) & df_response.DRUG.isin(dr_filter)][['CELL', 'DRUG', target]].drop_duplicates().reset_index(drop=True)
+    df_response[target] = df_response[target].astype(dtype=np.float32)
 
     if args.response_type == 'bin':
         df_response[target] = df_response[target].apply(lambda x: 0 if x < 0.5 else 1)
@@ -121,9 +125,14 @@ def build_dataframe(args):
     df_rnaseq.rename(columns={'Sample': 'CELL'}, inplace=True)
     df_rnaseq.columns = ['GE_' + x if i > 0 else x for i, x in enumerate(df_rnaseq.columns.to_list())]
     df_rnaseq = df_rnaseq.set_index(['CELL'])
+    cols = df_rnaseq.columns
+    df_rnaseq[cols] = scaler.fit_transform(df_rnaseq[cols]).astype(dtype=np.float32)
 
     df_descriptor = pd.read_csv(get_drug_descriptor_path(args), sep='\t', low_memory=False, na_values='na')
-    df_descriptor = df_descriptor[df_descriptor.DRUG.isin(dr_filter)].set_index(['DRUG']).fillna(0)
+    df_descriptor = df_descriptor[df_descriptor.DRUG.isin(dr_filter)].set_index(['DRUG']).fillna(0.0)
+    df_descriptor = df_descriptor.astype(dtype=np.float32)
+    cols = df_descriptor.columns
+    df_descriptor[cols] = scaler.fit_transform(df_descriptor[cols].astype(float)).astype(dtype=np.float32)
 
     df = df_response.merge(df_rnaseq, on='CELL', how='left', sort='true')
     df.set_index(['DRUG'])
