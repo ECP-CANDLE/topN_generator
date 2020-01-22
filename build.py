@@ -115,7 +115,7 @@ def build_dataframe(args):
     df_response[target] = df_response[target].astype(dtype=np.float32)
 
     if args.response_type == 'bin':
-        df_response[target] = df_response[target].apply(lambda x: 0 if x < 0.5 else 1)
+        df_response[target] = df_response[target].apply(lambda x: 1 if x < 0.5 else 0)
         df_response.rename(columns={target: 'Response'}, inplace=True)
 
     # Join response data with Drug descriptor & RNASeq
