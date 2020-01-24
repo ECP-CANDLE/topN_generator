@@ -116,7 +116,13 @@ def build_dataframe(args):
 
     if args.response_type == 'bin':
         df_response[target] = df_response[target].apply(lambda x: 1 if x < 0.5 else 0)
-        df_response.rename(columns={target: 'Response'}, inplace=True)
+        df_response = df_response.drop_duplicates()
+        df_disagree = df_response[df_response.duplicated(['CELL', 'DRUG'])]
+        df_disagree['Sample'] = df_disagree.CELL.map(str) + '__' + df_disagree.DRUG.map(str)
+        df_response['Sample'] = df_response.CELL.map(str) + '__' + df_response.DRUG.map(str)
+        df_response.drop(df_response[df_response.Sample.isin(df_disagree.Sample)].index, inplace=True)
+        df_response.drop(columns=['Sample'], inplace=True)
+        df_response.reset_index(drop=True, inplace=True)
 
     # Join response data with Drug descriptor & RNASeq
     df_rnaseq = pd.read_csv(get_cell_feature_path(args), sep='\t', low_memory=False)
