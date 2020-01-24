@@ -90,7 +90,7 @@ def build_dataframe(args):
     df_cl_cancer_map.set_index('CELL')
 
     df_cl_cancer_drug = df_cl_cancer_map.merge(df_uniq_cl_drugs, on='CELL', how='left', sort='true')
-    df_cl_cancer_drug['CELL_DRUG'] = df_cl_cancer_drug.CELL.astype(str) + '.' + df_cl_cancer_drug.DRUG.astype(str)
+    df_cl_cancer_drug['CELL_DRUG'] = df_cl_cancer_drug.CELL.map(str) + '.' + df_cl_cancer_drug.DRUG.map(str)
 
     top_n = df_cl_cancer_drug.groupby(['CANCER_TYPE']).count().sort_values('CELL_DRUG', ascending=False).head(args.top_n)
     top_n_cancer_types = top_n.index.to_list()
@@ -139,12 +139,8 @@ def build_dataframe(args):
 
     df_final = df.merge(df_descriptor, on='DRUG', how='left', sort='true')
     if args.labels:
-        df_cell_map = df_final['CELL'].to_dict()
-        df_drug_map = df_final['DRUG'].to_dict()
-        df_final.drop(columns=['CELL', 'DRUG'], inplace=True)
-        df_final.drop_duplicates(inplace=True)
-        df_final.insert(0, 'DRUG', df_final.index.map(df_drug_map))
-        df_final.insert(0, 'CELL', df_final.index.map(df_cell_map))
+        df_final_deduped = df_final.drop(columns=['CELL', 'DRUG', target]).drop_duplicates()
+        df_final = df_final[df_final.index.isin(df_final_deduped.index)]
         df_final.reset_index(drop=True, inplace=True)
     else:
         df_final.drop(columns=['CELL', 'DRUG'], inplace=True)
