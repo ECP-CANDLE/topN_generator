@@ -137,6 +137,8 @@ def build_dataframe(args):
     df_descriptor = pd.read_csv(get_drug_descriptor_path(args), sep='\t', low_memory=False, na_values='na')
     df_descriptor = df_descriptor[df_descriptor.DRUG.isin(dr_filter)].set_index(['DRUG']).fillna(0.0)
     df_descriptor = df_descriptor.astype(dtype=np.float32)
+    cols = df_descriptor.columns
+    df_descriptor[cols] = scaler.fit_transform(df_descriptor[cols].astype(float)).astype(dtype=np.float32)
 
     df = df_response.merge(df_rnaseq, on='CELL', how='left', sort='true')
     df.set_index(['DRUG'])
