@@ -38,6 +38,8 @@ def parse_arguments(model_name=''):
     parser.add_argument('--target', type=str, default='AUC',
                         choices=['AUC', 'IC50', 'EC50', 'EC50se', 'R2fit', 'Einf', 'HS', 'AAC1', 'AUC1', 'DSS1'],
                         help='Response label value. Default AUC')
+    parser.add_argument('--scaled', action='store_true',
+                        help='Apply scaling. Default False')
 
     args, unparsed = parser.parse_known_args()
     return args, unparsed
@@ -79,7 +81,6 @@ def build_filename(args):
 
 
 def build_dataframe(args):
-    scaler = StandardScaler()
 
     # Identify Top N cancer types with targeted drug list (1800 drugs)
     df_response = pd.read_csv(response_path, sep='\t', engine='c', low_memory=False)
@@ -130,14 +131,15 @@ def build_dataframe(args):
     df_rnaseq.rename(columns={'Sample': 'CELL'}, inplace=True)
     df_rnaseq.columns = ['GE_' + x if i > 0 else x for i, x in enumerate(df_rnaseq.columns.to_list())]
     df_rnaseq = df_rnaseq.set_index(['CELL'])
-    cols = df_rnaseq.columns
-    df_rnaseq[cols] = scaler.fit_transform(df_rnaseq[cols]).astype(dtype=np.float32)
 
     df_descriptor = pd.read_csv(get_drug_descriptor_path(args), sep='\t', low_memory=False, na_values='na')
     df_descriptor = df_descriptor[df_descriptor.DRUG.isin(dr_filter)].set_index(['DRUG']).fillna(0.0)
     df_descriptor = df_descriptor.astype(dtype=np.float32)
-    cols = df_descriptor.columns
-    df_descriptor[cols] = scaler.fit_transform(df_descriptor[cols].astype(float)).astype(dtype=np.float32)
+
+    if args.scaled:
+        scaler = StandardScaler()
+        df_rnaseq[df_rnaseq.columns] = scaler.fit_transform(df_rnaseq[df_rnaseq.columns]).astype(dtype=np.float32)
+        df_descriptor[df_descriptor.columns] = scaler.fit_transform(df_descriptor[df_descriptor.columns]).astype(dtype=np.float32)
 
     df = df_response.merge(df_rnaseq, on='CELL', how='left', sort='true')
     df.set_index(['DRUG'])
