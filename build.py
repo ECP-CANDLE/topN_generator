@@ -92,11 +92,8 @@ def build_dataframe(args):
     df_cl_cancer_map = pd.read_csv(cell_cancer_types_map_path, sep='\t', header=None, names=['CELL', 'CANCER_TYPE'])
     df_cl_cancer_map.set_index('CELL')
 
-    df_cl_cancer_drug = df_cl_cancer_map.merge(df_uniq_cl_drugs, on='CELL', how='left', sort='true')
-    df_cl_cancer_drug['CELL_DRUG'] = df_cl_cancer_drug.CELL.map(str) + '.' + df_cl_cancer_drug.DRUG.map(str)
-
-    top_n = df_cl_cancer_drug.groupby(['CANCER_TYPE']).count().sort_values('CELL_DRUG', ascending=False).head(args.top_n)
-    top_n_cancer_types = top_n.index.to_list()
+    df_cl_cancer_drug = df_cl_cancer_map.merge(df_uniq_cl_drugs, on='CELL', how='inner', sort='true')
+    top_n_cancer_types = df_cl_cancer_drug.CANCER_TYPE.value_counts().head(args.top_n).index.to_list()
 
     print("Identified {} cancer types: ".format(args.top_n), top_n_cancer_types)
 
