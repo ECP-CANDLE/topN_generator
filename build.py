@@ -81,8 +81,10 @@ def build_filename(args):
 def build_dataframe(args):
     scaler = StandardScaler()
 
-    # Identify Top N cancer types
+    # Identify Top N cancer types with targeted drug list (1800 drugs)
     df_response = pd.read_csv(response_path, sep='\t', engine='c', low_memory=False)
+    drug_list = pd.read_csv(drug_list_path)['DRUG'].to_list()
+    df_response = df_response[df_response.DRUG.isin(drug_list)]
 
     df_uniq_cl_drugs = df_response[['CELL', 'DRUG']].drop_duplicates().reset_index(drop=True)
 
@@ -102,9 +104,6 @@ def build_dataframe(args):
 
     # Identify drugs associated with the target cancer type & filtered by drug_list
     df_drugs = df_cl_cancer_drug[df_cl_cancer_drug['CANCER_TYPE'].isin(top_n_cancer_types)][['DRUG']].drop_duplicates().reset_index(drop=True)
-
-    drug_list = pd.read_csv(drug_list_path)['DRUG'].to_list()
-    df_drugs = df_drugs[df_drugs['DRUG'].isin(drug_list)].reset_index(drop=True)
 
     # Filter response by cell lines (4882) and drugs (1779)
     cl_filter = df_cl.CELL.to_list()
