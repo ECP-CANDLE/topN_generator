@@ -20,10 +20,10 @@ def parse_arguments(model_name=''):
                         help='Number of cancer types to be included. Default 6')
     parser.add_argument('--drug_descriptor', type=str, default='dragon7',
                         choices=['dragon7', 'mordred'],
-                        help='Drug descriptors')
+                        help='Drug descriptors. Default dragon7')
     parser.add_argument('--cell_feature', default='rnaseq',
                         choices=['rnaseq', 'snps'],
-                        help='Cell line features')
+                        help='Cell line features. Default rnaseq')
     parser.add_argument('--cell_feature_subset', default='lincs1000',
                         choices=['lincs1000', 'oncogenes', 'all'],
                         help='Subset of cell line features. Default lincs1000')
