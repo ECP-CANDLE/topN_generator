@@ -40,6 +40,8 @@ def parse_arguments(model_name=''):
                         help='Response label value. Default AUC')
     parser.add_argument('--scaled', action='store_true',
                         help='Apply scaling. Default False')
+    parser.add_argument('--drop_bad_fit_by_percent', type=int, default=0,
+                        help='Drop samples where R2fit below this percentage. Default 0')
 
     args, unparsed = parser.parse_known_args()
     return args, unparsed
@@ -108,8 +110,17 @@ def build_dataframe(args):
     dr_filter = df_drugs.DRUG.to_list()
     target = args.target
 
-    df_response = df_response[df_response.CELL.isin(cl_filter) & df_response.DRUG.isin(dr_filter)][['CELL', 'DRUG', target]].drop_duplicates().reset_index(drop=True)
-    df_response[target] = df_response[target].astype(dtype=np.float32)
+    if args.drop_bad_fit_by_percent == 0:
+        df_response = df_response[df_response.CELL.isin(cl_filter) & df_response.DRUG.isin(dr_filter)][['CELL', 'DRUG', target]].drop_duplicates().reset_index(drop=True)
+        df_response[target] = df_response[target].astype(dtype=np.float32)
+    else:
+        df_response = df_response[df_response.CELL.isin(cl_filter) & df_response.DRUG.isin(dr_filter)][['CELL', 'DRUG', target, 'R2fit']].drop_duplicates().reset_index(drop=True)
+        df_response[target] = df_response[target].astype(dtype=np.float32)
+
+        cutoff = int(len(df_response) * (100 - args.drop_bad_fit_by_percent) / 100)
+        df_response = df_response.sort_values('R2fit', ascending=False)[:cutoff]
+        df_response.drop(columns=['R2fit'], inplace=True)
+        print("Filter samples on R2fit (>{}) and dropped {} responses.".format(args.drop_bad_fit_by_percent, cutoff))
 
     if args.response_type == 'bin':
         df_response[target] = df_response[target].apply(lambda x: 1 if x < 0.5 else 0)
