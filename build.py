@@ -121,15 +121,17 @@ def build_dataframe(args):
     target = args.target
 
     if args.drop_bad_fit_by_percent == 0:
-        df_response = df_response[df_response.CELL.isin(cl_filter) & df_response.DRUG.isin(dr_filter)][['CELL', 'DRUG', target]].drop_duplicates().reset_index(drop=True)
+        df_response = df_response[df_response.CELL.isin(cl_filter) & df_response.DRUG.isin(dr_filter)][['CELL', 'DRUG', target, 'R2fit']].drop_duplicates().reset_index(drop=True)
         df_response[target] = df_response[target].astype(dtype=np.float32)
     else:
         df_response = df_response[df_response.CELL.isin(cl_filter) & df_response.DRUG.isin(dr_filter)][['CELL', 'DRUG', target, 'R2fit']].drop_duplicates().reset_index(drop=True)
         df_response[target] = df_response[target].astype(dtype=np.float32)
 
         cutoff = int(len(df_response) * (100 - args.drop_bad_fit_by_percent) / 100)
+        df_drop = df_response.sort_values('R2fit', ascending=False)[cutoff:]
+        df_drop.to_parquet('dropped.parquet')
         df_response = df_response.sort_values('R2fit', ascending=False)[:cutoff]
-        print("Filter samples on R2fit (>{}) and dropped {} responses.".format(args.drop_bad_fit_by_percent, cutoff))
+        print("Filter samples on R2fit (>{}) and dropped {} responses.".format(args.drop_bad_fit_by_percent, len(df_drop)))
 
     if args.response_type == 'bin':
         if args.debug:
