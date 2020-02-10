@@ -42,6 +42,8 @@ def parse_arguments(model_name=''):
                         help='Apply scaling. Default False')
     parser.add_argument('--drop_bad_fit_by_percent', type=int, default=0,
                         help='Drop samples where R2fit below this percentage. Default 0')
+    parser.add_argument('--debug', action='store_true',
+                        help='Keep original target value.')
 
     args, unparsed = parser.parse_known_args()
     return args, unparsed
@@ -74,8 +76,16 @@ def get_drug_descriptor_path(args):
 
 
 def build_file_basename(args):
-    return "top_{}.res_{}.cf_{}.dd_{}{}".format(args.top_n, args.response_type, args.cell_feature, args.drug_descriptor,
-                                                '.labled' if args.labels else '')
+    filename = f'top_{args.top_n}.res_{args.response_type}.cf_{args.cell_feature}.dd_{args.drug_descriptor}'
+    if args.labels:
+        filename += '.labeled'
+    if args.scaled:
+        filename += '.scaled'
+    if args.drop_bad_fit_by_percent > 0:
+        filename += f'.r{args.drop_bad_fit_by_percent}'
+    if args.debug:
+        filename += '.debug'
+    return filename
 
 
 def build_filename(args):
@@ -119,10 +129,11 @@ def build_dataframe(args):
 
         cutoff = int(len(df_response) * (100 - args.drop_bad_fit_by_percent) / 100)
         df_response = df_response.sort_values('R2fit', ascending=False)[:cutoff]
-        df_response.drop(columns=['R2fit'], inplace=True)
         print("Filter samples on R2fit (>{}) and dropped {} responses.".format(args.drop_bad_fit_by_percent, cutoff))
 
     if args.response_type == 'bin':
+        if args.debug:
+            df_response_debug = df_response[[target, 'R2fit']]
         df_response[target] = df_response[target].apply(lambda x: 1 if x < 0.5 else 0)
         df_response = df_response.drop_duplicates()
         df_disagree = df_response[df_response.duplicated(['CELL', 'DRUG'])]
@@ -130,6 +141,9 @@ def build_dataframe(args):
         df_response.insert(loc=3, column='Sample', value=df_response.CELL.map(str) + '__' + df_response.DRUG.map(str))
         df_response.drop(df_response[df_response.Sample.isin(df_disagree.Sample)].index, inplace=True)
         df_response.drop(columns=['Sample'], inplace=True)
+        if args.debug:
+            df_response['R2fit'] = df_response_debug[df_response_debug.index.isin(df_response.index)]['R2fit']
+            df_response[f'{target}_raw'] = df_response_debug[df_response_debug.index.isin(df_response.index)][target]
         df_response.reset_index(drop=True, inplace=True)
 
     # Join response data with Drug descriptor & RNASeq
@@ -154,7 +168,10 @@ def build_dataframe(args):
 
     df_final = df.merge(df_descriptor, on='DRUG', how='left', sort='true')
     if args.labels:
-        df_final_deduped = df_final.drop(columns=['CELL', 'DRUG', target]).drop_duplicates()
+        if args.debug:
+            df_final_deduped = df_final.drop(columns=['CELL', 'DRUG', target, f'{target}_raw', 'R2fit']).drop_duplicates()
+        else:
+            df_final_deduped = df_final.drop(columns=['CELL', 'DRUG', target]).drop_duplicates()
         df_final = df_final[df_final.index.isin(df_final_deduped.index)]
         df_final.reset_index(drop=True, inplace=True)
     else:
