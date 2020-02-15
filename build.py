@@ -42,6 +42,8 @@ def parse_arguments(model_name=''):
                         help='Apply scaling. Default False')
     parser.add_argument('--drop_bad_fit_by_percent', type=int, default=0,
                         help='Drop samples where R2fit below this percentage. Default 0')
+    parser.add_argument('--drop_bad_fit_by_threshold', type=float, default=None,
+                        help='Drop samples where R2fit below this threshold. Default None')
     parser.add_argument('--debug', action='store_true',
                         help='Keep original target value.')
 
@@ -83,6 +85,8 @@ def build_file_basename(args):
         filename += '.scaled'
     if args.drop_bad_fit_by_percent > 0:
         filename += f'.r{args.drop_bad_fit_by_percent}'
+    if args.drop_bad_fit_by_threshold:
+        filename += f'.r{args.drop_bad_fit_by_threshold}'
     if args.debug:
         filename += '.debug'
     return filename
@@ -120,18 +124,17 @@ def build_dataframe(args):
     dr_filter = df_drugs.DRUG.to_list()
     target = args.target
 
-    if args.drop_bad_fit_by_percent == 0:
-        df_response = df_response[df_response.CELL.isin(cl_filter) & df_response.DRUG.isin(dr_filter)][['CELL', 'DRUG', target, 'R2fit']].drop_duplicates().reset_index(drop=True)
-        df_response[target] = df_response[target].astype(dtype=np.float32)
-    else:
-        df_response = df_response[df_response.CELL.isin(cl_filter) & df_response.DRUG.isin(dr_filter)][['CELL', 'DRUG', target, 'R2fit']].drop_duplicates().reset_index(drop=True)
-        df_response[target] = df_response[target].astype(dtype=np.float32)
+    df_response = df_response[df_response.CELL.isin(cl_filter) & df_response.DRUG.isin(dr_filter)][['CELL', 'DRUG', target, 'R2fit']].drop_duplicates().reset_index(drop=True)
+    df_response[target] = df_response[target].astype(dtype=np.float32)
 
+    if args.drop_bad_fit_by_percent > 0:
         cutoff = int(len(df_response) * (100 - args.drop_bad_fit_by_percent) / 100)
         df_drop = df_response.sort_values('R2fit', ascending=False)[cutoff:]
         df_drop.to_parquet('dropped.parquet')
         df_response = df_response.sort_values('R2fit', ascending=False)[:cutoff]
         print("Filter samples on R2fit (>{}) and dropped {} responses.".format(args.drop_bad_fit_by_percent, len(df_drop)))
+    elif args.drop_bad_fit_by_threshold is not None:
+        df_response.drop(df_response[df_response.R2fit < args.drop_bad_fit_by_threshold].index, inplace=True)
 
     if args.response_type == 'bin':
         if args.debug:
