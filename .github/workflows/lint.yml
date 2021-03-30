@@ -15,5 +15,5 @@ jobs:
     - name: Check pycodestyle
       run: |
         pip install pycodestyle
-        pycodestyle .
+        pycodestyle --ignore E501 .
         ...
